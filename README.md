@@ -2,9 +2,10 @@
 
 📌 왜 필요한가?
 
-Spring Boot는 기본적으로 모든 요청을 보호하려고 함. 그래서 로그인, 상품 조회 같은 페이지도 막혀버림
+Spring Boot는 기본적으로 모든 요청을 보호하려고 함. 그래서 로그인, 상품 조회 같은 페이지도 막혀버림.
 이 문제를 해결하려면 "이 URL은 누구나 접근해도 된다", "이 URL은 로그인한 사용자만 접근 가능하다"처럼 규칙을 설정해야 함.
 그걸 담당하는 게 바로 SecurityConfig
+
 
 🔧 주요 설정
 
@@ -14,6 +15,7 @@ Spring Boot는 기본적으로 모든 요청을 보호하려고 함. 그래서 �
     .anyRequest().authenticated() // 나머지는 로그인한 사용자만 가능
 )
 
+
 🔒 필터 추가
 
 http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
@@ -21,6 +23,8 @@ http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 JWT(토큰)를 검사하는 필터(jwtFilter)를 추가.
 
 이 필터는 사용자가 보낸 요청에 토큰이 있으면, "이 사람은 로그인한 사람이다!"라고 판단하도록 도와줌.
+
+
 
 🔑 JWT 토큰 생성과 검증 담당
 
@@ -57,6 +61,8 @@ protected void doFilterInternal(HttpServletRequest request, ...)
 Spring Security에 로그인된 사용자로 등록
 
 💡 예: 사용자가 마이페이지에 접근하면 이 필터가 작동해서 JWT 토큰이 유효한지 확인하고, 맞으면 해당 사용자의 정보를 인증해줌.
+
+
 
 📘 ShoseShop 설계 문서
 
