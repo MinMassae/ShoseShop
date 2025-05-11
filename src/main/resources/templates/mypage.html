@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>アカウント情報修正</title>
+</head>
+<body>
+
+<!-- ✅ 공통 상단 헤더 -->
+<header>
+  <div id="logo" onclick="location.href='/'">👟 ShoseShop</div>
+  <nav>
+    <ul id="menu"></ul>
+  </nav>
+</header>
+
+<!-- ✅ 마이페이지 메뉴 -->
+<aside>
+  <h3>メニュー</h3>
+  <ul>
+    <li><a href="/mypage">アカウント情報</a></li>
+    <li><a href="/mypage/cart">カートリスト</a></li>
+    <li><a href="/mypage/orders">注文履歴</a></li>
+  </ul>
+</aside>
+
+<!-- ✅ 회원정보 수정 폼 -->
+<main style="margin-left: 220px; padding: 20px;">
+  <h2>アカウント情報修正</h2>
+  <form id="updateForm">
+    <div>
+      <label>ユーザーID:</label>
+      <input type="text" id="userId" readonly>
+    </div>
+
+    <div>
+      <label>パスワード:</label>
+      <input type="password" id="password">
+    </div>
+
+    <div>
+      <label>パスワード確認:</label>
+      <input type="password" id="confirmPassword">
+    </div>
+
+    <div>
+      <label>名前:</label>
+      <input type="text" id="name" required>
+    </div>
+
+    <div>
+      <label>郵便番号:</label>
+      <input type="text" id="postcode" placeholder="郵便番号" readonly>
+    </div>
+
+    <div>
+      <label>住所:</label>
+      <input type="text" id="address" placeholder="住所" readonly required>
+      <input type="button" onclick="execDaumPostcode()" value="住所検索">
+    </div>
+
+    <div>
+      <label>詳細住所:</label>
+      <input type="text" id="detailAddress" placeholder="詳細住所を入力">
+    </div>
+
+    <div>
+      <label>メールアドレス:</label>
+      <input type="email" id="email">
+    </div>
+
+    <div>
+      <label>電話番号:</label>
+      <input type="text" id="phone">
+    </div>
+
+    <div>
+      <button type="submit">修正する</button>
+    </div>
+  </form>
+</main>
+
+<!-- ✅ 메뉴 & 사용자 정보 JS -->
+<script>
+  const token = localStorage.getItem("accessToken");
+  const menu = document.getElementById("menu");
+
+  // ✅ 메뉴 표시
+  if (token) {
+    menu.innerHTML = `
+      <li><a href="#" onclick="logout()">ログアウト</a></li>
+      <li><a href="/mypage">マイページ</a></li>
+      <li><a href="/board">掲示板</a></li>
+    `;
+  } else {
+    menu.innerHTML = `
+      <li><a href="/login">ログイン</a></li>
+      <li><a href="/register">会員登録</a></li>
+      <li><a href="/board">掲示板</a></li>
+    `;
+  }
+
+  function logout() {
+    localStorage.removeItem("accessToken");
+    window.location.href = "/login";
+  }
+
+  // ✅ 주소 API 연결
+  function execDaumPostcode() {
+    new daum.Postcode({
+      oncomplete: function(data) {
+        document.getElementById("postcode").value = data.zonecode;
+        document.getElementById("address").value = data.address;
+        document.getElementById("detailAddress").focus();
+      }
+    }).open();
+  }
+
+  // ✅ 기존 정보 불러오기
+  if (token) {
+    fetch("/api/mypage", {
+      method: "GET",
+      headers: { "Authorization": "Bearer " + token }
+    })
+            .then(res => res.json())
+            .then(data => {
+              document.getElementById("userId").value = data.userId ?? "";
+              document.getElementById("name").value = data.name ?? "";
+              document.getElementById("email").value = data.email ?? "";
+              document.getElementById("phone").value = data.phone ?? "";
+              console.log("응답:", data);
+
+              const fullAddr = data.address ?? "";
+              const addrParts = fullAddr.split(" ");
+              document.getElementById("postcode").value = addrParts[0] ?? "";
+              document.getElementById("address").value = addrParts.slice(1, -1).join(" ") ?? "";
+              document.getElementById("detailAddress").value = addrParts.slice(-1)[0] ?? "";
+            });
+  }
+
+  // ✅ 정보 수정 제출
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("updateForm");
+
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      const pw = document.getElementById("password").value;
+      const confirmPw = document.getElementById("confirmPassword").value;
+      if (pw && pw !== confirmPw) {
+
+      // ✅ 주소 결합
+      const addr = document.getElementById("address").value;        alert("パスワードが一致しません。");
+      return;
+    }
+
+    const detail = document.getElementById("detailAddress").value;
+      document.getElementById("address").value = addr + " " + detail;
+
+      const body = {
+        password: pw,
+        name: document.getElementById("name").value,
+        address: document.getElementById("postcode").value + " " + document.getElementById("address").value,
+        email: document.getElementById("email").value,
+        phone: document.getElementById("phone").value
+      };
+
+      fetch("/api/mypage/update", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify(body)
+      })
+              .then(res => {
+                if (!res.ok) throw new Error("更新失敗");
+                alert("情報を修正しました。");
+                window.location.href = "/mypage";
+              })
+              .catch(() => alert("修正に失敗しました。"));
+    });
+  });
+</script>
+
+<!-- ✅ 다음 주소 API -->
+<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+
+</body>
+</html>

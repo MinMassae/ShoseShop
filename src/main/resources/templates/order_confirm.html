@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>注文確認</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    table, th, td {
+      border: 1px solid #ccc;
+    }
+    th, td {
+      padding: 10px;
+      text-align: center;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+  </style>
+</head>
+<body>
+
+<h2>注文内容確認</h2>
+
+<!-- ✅ 유저 정보 표시 -->
+<div>
+  <p><strong>名前:</strong> <span id="name"></span></p>
+  <p><strong>電話番号:</strong> <span id="phone"></span></p>
+  <p><strong>住所:</strong> <span id="address"></span></p>
+</div>
+
+<!-- ✅ 주문 상품 리스트 -->
+<table id="orderTable">
+  <thead>
+  <tr>
+    <th>商品名</th>
+    <th>サイズ</th>
+    <th>数量</th>
+    <th>価格</th>
+    <th>小計</th>
+  </tr>
+  </thead>
+  <tbody id="orderBody"></tbody>
+</table>
+
+<!-- ✅ 총액 표시 -->
+<div>
+  <p><strong>合計金額:</strong> <span id="amount">0円</span></p>
+</div>
+
+<!-- ✅ 숨겨진 정보 -->
+<input type="hidden" id="orderId">
+<input type="hidden" id="cartIds">
+
+<!-- ✅ 결제 버튼 -->
+<button id="payButton">決済する</button>
+
+<script>
+  const token = localStorage.getItem("accessToken");
+
+  document.addEventListener("DOMContentLoaded", function() {
+    if (!token) {
+      alert("ログインが必要です。");
+      location.href = "/login";
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const cartIds = params.getAll('cartIds');
+
+    if (cartIds.length === 0) {
+      alert("注文する商品が選択されていません。");
+      location.href = "/mypage/cart";
+      return;
+    }
+
+    document.getElementById("cartIds").value = cartIds.join(",");
+    const generatedOrderId = "ORDER-" + Date.now();
+    document.getElementById("orderId").value = generatedOrderId;
+
+    const queryString = cartIds.map(id => `cartIds=${id}`).join("&");
+
+    fetch(`/api/order/confirm?${queryString}`, {
+      method: "GET",
+      headers: { "Authorization": "Bearer " + token }
+    })
+            .then(res => {
+              if (!res.ok) throw new Error("注文情報取得エラー");
+              return res.json();
+            })
+            .then(data => {
+              document.getElementById("name").textContent = data.name ?? "-";
+              document.getElementById("phone").textContent = data.phone ?? "-";
+              document.getElementById("address").textContent = data.address ?? "-";
+
+              const tbody = document.getElementById("orderBody");
+              tbody.innerHTML = "";
+
+              let totalAmount = 0;
+
+              data.items.forEach(item => {
+                const subtotal = item.price * item.quantity;
+                totalAmount += subtotal;
+
+                const row = `
+          <tr>
+            <td>${item.productName}</td>
+            <td>${item.size}</td>
+            <td>${item.quantity}</td>
+            <td>${item.price}円</td>
+            <td>${subtotal}円</td>
+          </tr>
+        `;
+                tbody.innerHTML += row;
+              });
+
+              document.getElementById("amount").textContent = totalAmount + "円";
+            })
+            .catch(err => {
+              console.error(err);
+              alert("注文情報を取得できませんでした。");
+              location.href = "/mypage/cart";
+            });
+  });
+
+  document.getElementById("payButton").addEventListener("click", function() {
+    const cartIds = document.getElementById("cartIds").value.split(",");
+    const amount = parseInt(document.getElementById("amount").textContent.replace("円", ""), 10);
+    const orderId = document.getElementById("orderId").value;
+
+    fetch("/api/payment/stripe/create-checkout-session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({
+        orderId: orderId,
+        cartIds: cartIds,
+        amount: amount
+      })
+    })
+            .then(res => {
+              if (!res.ok) throw new Error("セッション作成エラー");
+              return res.text(); // ✅ 문자열로 처리
+            })
+            .then(url => {
+              window.location.href = url; // ✅ Stripe 페이지로 리디렉트
+            })
+            .catch(err => {
+              console.error(err);
+              alert("決済処理中に問題が発生しました。再度お試しください。");
+            });
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>会員情報の修正</title>
+  <style>
+    form {
+      max-width: 500px;
+      margin: auto;
+    }
+    label {
+      display: block;
+      margin-top: 10px;
+    }
+    input[type="text"],
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 8px;
+      margin-top: 4px;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px 20px;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ✅ 상단 헤더 -->
+<header>
+  <div id="logo" style="cursor:pointer;" onclick="location.href='/'">👟 ShoseShop</div>
+  <nav>
+    <ul id="menu">
+      <!-- 로그인 여부에 따라 동적 구성 -->
+    </ul>
+  </nav>
+</header>
+
+<!-- ✅ 마이페이지 메뉴 -->
+<aside>
+  <h3>マイページメニュー</h3>
+  <ul>
+    <li><a href="/mypage/edit">会員情報修正</a></li>
+    <li><a href="/mypage/cart">カートリスト</a></li>
+    <li><a href="/mypage/orders">注文履歴</a></li>
+  </ul>
+</aside>
+
+<!-- ✅ 수정 폼 -->
+<main>
+  <h2>会員情報の修正</h2>
+  <form th:action="@{/mypage/edit}" method="post" th:object="${member}">
+    <label>ユーザーID（修正不可）</label>
+    <input type="text" th:value="*{userId}" readonly>
+
+    <label>名前</label>
+    <input type="text" th:field="*{name}" required>
+
+    <label>住所</label>
+    <input type="text" th:field="*{address}">
+
+    <label>メールアドレス</label>
+    <input type="email" th:field="*{email}">
+
+    <label>電話番号</label>
+    <input type="text" th:field="*{phone}">
+
+    <label>パスワード（空欄の場合は変更なし）</label>
+    <input type="password" name="password">
+
+    <button type="submit">保存する</button>
+  </form>
+</main>
+
+<script>
+  const token = localStorage.getItem("accessToken");
+  const menu = document.getElementById("menu");
+
+  if (token) {
+    menu.innerHTML = `
+      <li><a href="#" onclick="logout()">ログアウト</a></li>
+      <li><a href="/mypage">マイページ</a></li>
+      <li><a href="/board">掲示板</a></li>
+    `;
+  } else {
+    menu.innerHTML = `
+      <li><a href="/login">ログイン</a></li>
+      <li><a href="/register">会員登録</a></li>
+      <li><a href="/board">掲示板</a></li>
+    `;
+  }
+
+  function logout() {
+    localStorage.removeItem("accessToken");
+    location.href = "/login";
+  }
+</script>
+
+</body>
+</html>

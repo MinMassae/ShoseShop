@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>ShoseShop ホーム</title>
+</head>
+<body>
+
+<header>
+    <div id="logo" style="cursor:pointer;" onclick="location.href='/'">👟 ShoseShop</div>
+    <nav>
+        <ul id="menu">
+            <!-- JSでログイン状態に応じて動的に生成 -->
+        </ul>
+    </nav>
+</header>
+
+<aside>
+    <ul>
+        <li><a href="/items">全ての商品</a></li>
+        <li><a href="/items?brand=Nike">Nike</a></li>
+        <li><a href="/items?brand=Adidas">Adidas</a></li>
+        <li><a href="/items?brand=Athleta">Athleta</a></li>
+    </ul>
+</aside>
+
+<main>
+    <section>
+        <h2>🆕 新商品</h2>
+        <div id="newItems" style="display: flex; gap: 20px;"></div>
+    </section>
+
+    <section>
+        <h2>🏆 人気商品</h2>
+        <div id="bestItems" style="display: flex; gap: 20px;"></div>
+    </section>
+</main>
+
+<script>
+    const token = localStorage.getItem("accessToken");
+    const menu = document.getElementById("menu");
+
+    // ✅ ログイン状態によってメニュー表示を変更
+    if (token) {
+        menu.innerHTML = `
+            <li><a href="#" onclick="logout()">ログアウト</a></li>
+            <li><a href="/mypage">マイページ</a></li>
+            <li><a href="/board">掲示板</a></li>
+        `;
+    } else {
+        menu.innerHTML = `
+            <li><a href="/login">ログイン</a></li>
+            <li><a href="/register">会員登録</a></li>
+            <li><a href="/board">掲示板</a></li>
+        `;
+    }
+
+    function logout() {
+        localStorage.removeItem("accessToken");
+        window.location.href = "/login";
+    }
+
+    // ✅ 商品リストを取得
+    fetch("/api/home", {
+        headers: token ? { "Authorization": "Bearer " + token } : {}
+    })
+        .then(res => res.json())
+        .then(data => {
+            const newContainer = document.getElementById("newItems");
+            data.newItems.forEach(item => {
+                const imageUrl = item.imageUrl.startsWith("/images/")
+                    ? item.imageUrl
+                    : "/images/" + item.imageUrl;
+
+                newContainer.innerHTML += `
+                    <a href="/items/${item.id}" style="text-decoration: none; color: black;">
+                        <div>
+                            <img src="${imageUrl}" width="120"><br>
+                            <strong>${item.name}</strong><br>
+                            <span>￥${item.price}</span>
+                        </div>
+                    </a>`;
+            });
+
+            const bestContainer = document.getElementById("bestItems");
+            data.bestItems.forEach(item => {
+                const imageUrl = item.imageUrl.startsWith("/images/")
+                    ? item.imageUrl
+                    : "/images/" + item.imageUrl;
+
+                bestContainer.innerHTML += `
+                    <a href="/items/${item.id}" style="text-decoration: none; color: black;">
+                        <div>
+                            <img src="${imageUrl}" width="120"><br>
+                            <strong>${item.name}</strong><br>
+                            <span>￥${item.price}</span>
+                        </div>
+                    </a>`;
+            });
+        })
+        .catch(err => {
+            console.error("商品取得失敗:", err);
+        });
+</script>
+
+</body>
+</html>

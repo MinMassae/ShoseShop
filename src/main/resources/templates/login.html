@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>login</title>
+</head>
+<body>
+<h2>login</h2>
+
+<form id="loginForm">
+  <div>
+    <label>ID:</label>
+    <input type="text" name="userId" required>
+  </div>
+  <div>
+    <label>PW:</label>
+    <input type="password" name="password" required>
+  </div>
+  <div>
+    <button type="submit">Login</button>
+  </div>
+  <div>
+    <p>アカウントをお持ちでないですか？ <a href="/register">会員登録</a></p>
+  </div>
+</form>
+
+<p id="loginError" style="color: red;"></p>
+
+<script>
+  document.getElementById("loginForm").addEventListener("submit", function (event) {
+    event.preventDefault(); // 기본 동작 막기
+
+    const formData = new FormData(this);
+
+    fetch("/api/login", {
+      method: "POST",
+      body: formData
+    })
+            .then(res => {
+              if (res.status === 200) {
+                let token = res.headers.get("Authorization");
+                if (token && token.startsWith("Bearer ")) {
+                  token = token.substring(7); // ✅ "Bearer " 제거
+                }
+                if (token) {
+                  localStorage.setItem("accessToken", token); // ✅ 순수 토큰 저장
+                  window.location.href = "/home"; // 로그인 성공 후 이동
+                }
+              } else {
+                return res.text().then(msg => {
+                  document.getElementById("loginError").textContent = msg;
+                });
+              }
+            })
+            .catch(err => {
+              document.getElementById("loginError").textContent = "로그인 요청 중 오류 발생";
+            });
+  });
+</script>
+
+</body>
+</html>

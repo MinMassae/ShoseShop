@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>注文履歴</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        header { padding: 10px; background-color: #f0f0f0; display: flex; justify-content: space-between; align-items: center; }
+        #logo { cursor: pointer; }
+        nav ul { list-style: none; display: flex; gap: 15px; margin: 0; padding: 0; }
+        nav ul li a { text-decoration: none; color: #333; }
+        aside { float: left; width: 200px; padding: 10px; }
+        main { margin-left: 220px; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        table, th, td { border: 1px solid #ccc; }
+        th, td { padding: 8px; text-align: center; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div id="logo" onclick="location.href='/'">👟 ShoseShop</div>
+    <nav><ul id="menu"></ul></nav>
+</header>
+
+<aside>
+    <h3>メニュー</h3>
+    <ul>
+        <li><a href="/mypage">アカウント情報</a></li>
+        <li><a href="/mypage/cart">カートリスト</a></li>
+        <li><a href="/mypage/orders">注文履歴</a></li>
+    </ul>
+</aside>
+
+<main>
+    <h2>📝 注文履歴</h2>
+
+    <div id="orderList"></div>
+</main>
+
+<script>
+    const token = localStorage.getItem("accessToken");
+
+    if (!token) {
+        alert("ログインが必要です。");
+        location.href = "/login";
+    }
+
+    const menu = document.getElementById("menu");
+    if (token) {
+        menu.innerHTML = `
+      <li><a href="#" onclick="logout()">ログアウト</a></li>
+      <li><a href="/mypage">マイページ</a></li>
+      <li><a href="/board">掲示板</a></li>
+    `;
+    }
+
+    function logout() {
+        localStorage.removeItem("accessToken");
+        location.href = "/login";
+    }
+
+    function loadOrders() {
+        fetch("/api/orders", {
+            method: "GET",
+            headers: { "Authorization": "Bearer " + token }
+        })
+            .then(res => {
+                if (!res.ok) throw new Error("注文履歴取得エラー");
+                return res.json();
+            })
+            .then(data => {
+                const container = document.getElementById("orderList");
+                if (data.length === 0) {
+                    container.innerHTML = "<p>注文履歴がありません。</p>";
+                    return;
+                }
+
+                data.forEach(order => {
+                    const orderDiv = document.createElement("div");
+                    orderDiv.style.border = "1px solid #ccc";
+                    orderDiv.style.padding = "10px";
+                    orderDiv.style.marginBottom = "20px";
+
+                    let html = `
+          <h3>注文日: ${order.date}</h3>
+          <p><strong>状態:</strong> ${order.status}</p>
+          <table style="width:100%; margin-top:10px;">
+            <thead>
+              <tr>
+                <th>商品名</th>
+                <th>サイズ</th>
+                <th>数量</th>
+                <th>価格</th>
+                <th>小計</th>
+              </tr>
+            </thead>
+            <tbody>
+        `;
+
+                    order.items.forEach(item => {
+                        html += `
+            <tr>
+              <td>${item.productName}</td>
+              <td>${item.size}</td>
+              <td>${item.quantity}</td>
+              <td>${item.price}円</td>
+              <td>${item.price * item.quantity}円</td>
+            </tr>
+          `;
+                    });
+
+                    html += `
+            </tbody>
+          </table>
+        `;
+
+                    orderDiv.innerHTML = html;
+                    container.appendChild(orderDiv);
+                });
+            })
+            .catch(error => {
+                console.error(error);
+                alert("注文履歴を取得できませんでした。");
+            });
+    }
+
+    document.addEventListener("DOMContentLoaded", loadOrders);
+</script>
+
+</body>
+</html>

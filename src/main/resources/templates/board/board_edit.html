@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>おしらせ 編集</title>
+</head>
+<body>
+
+<!-- 🔷 헤더 -->
+<header>
+  <div id="logo" onclick="location.href='/'" style="cursor:pointer;">👟 ShoseShop</div>
+  <nav>
+    <ul id="menu">
+      <!-- JavaScript로 동적 생성 -->
+    </ul>
+  </nav>
+</header>
+
+<!-- 🔷 본문 -->
+<main style="margin: 20px;">
+  <h2>おしらせ 編集</h2>
+
+  <form id="postForm">
+    <!-- 수정 시 ID 값 -->
+    <input type="hidden" id="postId" th:value="${post?.id}">
+
+    <div>
+      <label for="title">タイトル:</label><br>
+      <input type="text" id="title" th:value="${post?.title}" required style="width: 100%;">
+    </div>
+    <br>
+    <div>
+      <label for="content">内容:</label><br>
+      <textarea id="content" rows="10" required style="width: 100%;">[[${post?.content}]]</textarea>
+    </div>
+    <br>
+    <button type="submit">保存</button>
+  </form>
+</main>
+
+<!-- 🔷 스크립트 -->
+<script>
+  const token = localStorage.getItem("accessToken");
+  const menu = document.getElementById("menu");
+
+  if (token) {
+    menu.innerHTML = `
+      <li><a href="/items">商品一覧</a></li>
+      <li><a href="/mypage">マイページ</a></li>
+      <li><a href="/board">掲示板</a></li>
+      <li><a href="#" onclick="logout()">ログアウト</a></li>
+    `;
+  } else {
+    menu.innerHTML = `
+      <li><a href="/items">商品一覧</a></li>
+      <li><a href="/login">ログイン</a></li>
+      <li><a href="/register">会員登録</a></li>
+      <li><a href="/board">掲示板</a></li>
+    `;
+  }
+
+  function logout() {
+    localStorage.removeItem("accessToken");
+    location.href = "/login";
+  }
+
+  // ✅ 공지 저장 (작성 or 수정)
+  document.getElementById("postForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const id = document.getElementById("postId").value;
+    const title = document.getElementById("title").value;
+    const content = document.getElementById("content").value;
+
+    const method = id ? "PUT" : "POST";
+    const url = id ? `/api/board/notice/${id}` : "/api/board/notice";
+
+    fetch(url, {
+      method: method,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ title, content })
+    })
+            .then(res => {
+              if (!res.ok) throw new Error("保存失敗");
+              alert("保存しました。");
+              location.href = "/board?type=notice";
+            })
+            .catch(err => {
+              console.error("保存エラー:", err);
+              alert("保存に失敗しました。");
+            });
+  });
+</script>
+
+</body>
+</html>

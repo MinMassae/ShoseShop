@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>商品一覧</title>
+</head>
+<body>
+<header>
+  <div id="logo" style="cursor:pointer;" onclick="location.href='/'">👟 ShoseShop</div>
+  <nav>
+    <ul id="menu">
+      <!-- JSでログイン状態に応じて動的に生成 -->
+    </ul>
+  </nav>
+</header>
+
+<h2>商品一覧</h2>
+
+<aside>
+  <ul>
+    <li><a href="/items">全ての商品</a></li>
+    <li><a href="/items?brand=Nike">Nike</a></li>
+    <li><a href="/items?brand=Adidas">Adidas</a></li>
+    <li><a href="/items?brand=Athleta">Athleta</a></li>
+  </ul>
+</aside>
+
+<!-- ブランド名 표시 -->
+<p th:if="${brand != null}">ブランド: <span th:text="${brand}"></span></p>
+
+<!-- 상품 리스트 -->
+<table border="1" cellpadding="10">
+  <thead>
+  <tr>
+    <th>画像</th>
+    <th>商品名</th>
+    <th>価格</th>
+  </tr>
+  </thead>
+  <tbody>
+  <tr th:each="product : ${productPage.content}">
+    <td>
+      <img th:src="@{${product.imageUrl}}" alt="商品画像" width="100" height="100">
+    </td>
+    <td>
+      <a th:href="@{'/items/' + ${product.id}}" th:text="${product.name}">商品名</a>
+    </td>
+    <td th:text="${product.price}">価格</td>
+  </tr>
+  </tbody>
+</table>
+
+<!-- 페이징 -->
+<div style="margin-top: 20px;">
+  <a th:if="${productPage.hasPrevious()}" th:href="@{'/items'(page=${productPage.number - 1}, brand=${brand})}">前へ</a>
+  <span th:text="${productPage.number + 1}">1</span> / <span th:text="${productPage.totalPages}">1</span>
+  <a th:if="${productPage.hasNext()}" th:href="@{'/items'(page=${productPage.number + 1}, brand=${brand})}">次へ</a>
+</div>
+
+</body>
+</html>

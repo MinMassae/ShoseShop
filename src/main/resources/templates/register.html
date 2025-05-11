@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>新規登録</title>
+</head>
+<body>
+
+<h2>新規登録</h2>
+
+<form th:action="@{/register}" method="post">
+  <div>
+    <label>ユーザーID:</label>
+    <input type="text" name="userId" required>
+  </div>
+
+  <div>
+    <label>パスワード:</label>
+    <input type="password" name="password" required>
+  </div>
+
+  <div>
+    <label>パスワード確認:</label>
+    <input type="password" name="confirmPassword" required>
+  </div>
+
+  <div>
+    <label>名前:</label>
+    <input type="text" name="name" required>
+  </div>
+
+  <div>
+    <label>郵便番号:</label>
+    <input type="text" id="postcode" placeholder="郵便番号" readonly>
+  </div>
+
+  <div>
+    <label>住所:</label>
+    <input type="text" id="address" name="address" placeholder="住所" readonly required>
+    <input type="button" onclick="execDaumPostcode()" value="住所検索">
+  </div>
+
+  <div>
+    <label>詳細住所:</label>
+    <input type="text" id="detailAddress" placeholder="詳細住所を入力">
+  </div>
+
+  <div>
+    <label>メールアドレス:</label>
+    <input type="email" name="email">
+  </div>
+
+  <div>
+    <label>電話番号:</label>
+    <input type="text" name="phone">
+  </div>
+
+  <div>
+    <button type="submit">登録する</button>
+  </div>
+</form>
+
+<!-- エラーメッセージ表示 -->
+<p th:if="${errorMessage != null}" th:text="${errorMessage}" style="color: red;"></p>
+
+<!-- 다음 주소 API 스크립트 -->
+<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<script>
+  function execDaumPostcode() {
+    new daum.Postcode({
+      oncomplete: function(data) {
+        // 우편번호 + 주소 입력
+        document.getElementById("postcode").value = data.zonecode;
+        document.getElementById("address").value = data.address;
+        document.getElementById("detailAddress").focus();
+      }
+    }).open();
+  }
+
+  // 폼 제출 시 주소 + 상세주소 결합
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.querySelector("form");
+    form.addEventListener("submit", function () {
+      const addr = document.getElementById("address").value;
+      const detail = document.getElementById("detailAddress").value;
+      document.getElementById("address").value = addr + " " + detail;
+    });
+  });
+</script>
+
+</body>
+</html>

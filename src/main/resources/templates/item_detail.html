@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title th:text="${product.name} + ' | ShoseShop'">商品詳細</title>
+</head>
+<body>
+
+<!-- 🔷 헤더 메뉴 -->
+<header>
+  <div id="logo" style="cursor:pointer;" onclick="location.href='/'">👟 ShoseShop</div>
+  <nav>
+    <ul id="menu">
+      <li><a href="/items">商品一覧</a></li>
+      <li><a href="/board">掲示板</a></li>
+      <li><a href="/mypage">マイページ</a></li>
+      <li><a href="#" onclick="logout()">ログアウト</a></li>
+    </ul>
+  </nav>
+</header>
+
+<!-- 🔷 상품 정보 -->
+<main>
+  <h2 th:text="${product.name}"></h2>
+  <img th:src="@{${product.imageUrl}}" alt="商品画像" width="250"><br><br>
+
+  <p><strong>価格:</strong> <span th:text="'￥' + ${product.price}"></span></p>
+  <p><strong>説明:</strong> <span th:text="${product.description}">商品説明</span></p>
+
+  <!-- 사이즈 선택 -->
+  <form id="cartForm">
+    <input type="hidden" id="productId" th:value="${product.id}" />
+
+    <label for="size">サイズ:</label>
+    <select id="size" required>
+      <option value="" disabled selected>選択してください</option>
+      <option th:each="stock : ${stocks}"
+              th:value="${stock.size}"
+              th:text="${stock.size + 'サイズ（在庫：' + stock.quantity + '）'}"></option>
+    </select>
+
+    <label for="quantity">数量:</label>
+    <input id="quantity" type="number" min="1" value="1" required>
+
+    <button type="submit">カートに追加</button>
+  </form>
+
+  <!-- 🔷 주문하기 버튼 추가 -->
+  <button type="button" onclick="orderNow()">注文する</button>
+</main>
+
+<script>
+  function logout() {
+    localStorage.removeItem("accessToken");
+    location.href = "/login";
+  }
+
+  // ✅ 장바구니 추가
+  document.getElementById("cartForm").addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      alert("ログインが必要です。");
+      location.href = "/login";
+      return;
+    }
+
+    const productId = document.getElementById("productId").value;
+    const size = document.getElementById("size").value;
+    const quantity = document.getElementById("quantity").value;
+
+    fetch("/cart/add", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ productId, size, quantity })
+    })
+            .then(res => {
+              if (res.status === 403) {
+                alert("ログインが必要です。");
+                location.href = "/login";
+              } else if (res.ok) {
+                alert("カートに追加しました！");
+                location.href = "/home";
+              } else {
+                return res.text().then(text => { throw new Error(text); });
+              }
+            })
+            .catch(err => {
+              console.error("エラー:", err.message);
+              alert("エラーが発生しました。");
+            });
+  });
+
+  // ✅ 주문하기 기능
+  function orderNow() {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      alert("ログインが必要です。");
+      location.href = "/login";
+      return;
+    }
+
+    const productId = document.getElementById("productId").value;
+    const size = document.getElementById("size").value;
+    const quantity = document.getElementById("quantity").value;
+
+    fetch("/api/payment/stripe/create-checkout-session", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({
+        productId,
+        size,
+        quantity,
+        direct: true
+      })
+    })
+            .then(res => res.text())
+            .then(url => {
+              location.href = url;
+            })
+            .catch(err => {
+              console.error("注文エラー:", err);
+              alert("注文に失敗しました。");
+            });
+  }
+</script>
+
+</body>
+</html>

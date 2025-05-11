@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>掲示板</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #ddd;
+    }
+    #logo {
+      font-size: 20px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+    nav ul {
+      display: flex;
+      list-style: none;
+      gap: 15px;
+      padding: 0;
+    }
+    nav ul li a {
+      text-decoration: none;
+      color: #333;
+    }
+    main {
+      display: flex;
+      margin-top: 20px;
+    }
+    aside {
+      width: 200px;
+      border-right: 1px solid #ccc;
+      padding-right: 10px;
+    }
+    section {
+      flex: 1;
+      padding-left: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f0f0f0;
+    }
+    .write-btn {
+      margin: 10px 0;
+    }
+    .pagination {
+      margin-top: 20px;
+    }
+    .pagination a {
+      margin: 0 5px;
+      text-decoration: none;
+      color: blue;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div id="logo" onclick="location.href='/'">👟 ShoseShop</div>
+  <nav>
+    <ul id="menu">
+      <!-- JS로 삽입 -->
+    </ul>
+  </nav>
+</header>
+
+<main>
+  <aside>
+    <ul>
+      <li><a href="/board?type=notice">おしらせ</a></li>
+      <li><a href="/board?type=qna">Q&A</a></li>
+    </ul>
+  </aside>
+
+  <section>
+    <h2 th:text="${type == 'notice' ? '📢 おしらせ' : '❓ Q&A'}"></h2>
+
+    <!-- ✍ 글 작성 버튼 -->
+    <div class="write-btn">
+      <a th:if="${type == 'notice' and isAdmin}" th:href="@{'/board/write'(type=${type})}">
+        <button>✏️ 新規作成（管理者）</button>
+      </a>
+      <a th:if="${type == 'qna' and isLogin}" th:href="@{'/board/write'(type=${type})}">
+        <button>✏️ 質問を書く</button>
+      </a>
+    </div>
+
+    <!-- 📋 게시글 목록 -->
+    <table>
+      <thead>
+      <tr>
+        <th>タイトル</th>
+        <th>作成者</th>
+        <th>作成日</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr th:each="post : ${posts}">
+        <td><a th:href="@{'/board/' + ${post.id}}" th:text="${post.title}">タイトル</a></td>
+        <td th:text="${post.writer}">작성자</td>
+        <td th:text="${#temporals.format(post.createdAt, 'yyyy-MM-dd')}">作成日</td>
+      </tr>
+      </tbody>
+    </table>
+
+    <!-- 페이지네이션 -->
+    <div class="pagination">
+      <a th:if="${page > 0}" th:href="@{'/board'(type=${type}, page=${page - 1})}">前へ</a>
+      <span th:text="${page + 1}">1</span>
+      <a th:if="${page + 1 < totalPages}" th:href="@{'/board'(type=${type}, page=${page + 1})}">次へ</a>
+    </div>
+  </section>
+</main>
+
+<script>
+  const token = localStorage.getItem("accessToken");
+  const menu = document.getElementById("menu");
+
+  if (token) {
+    menu.innerHTML = `
+      <li><a href="/items">商品一覧</a></li>
+      <li><a href="/mypage">マイページ</a></li>
+      <li><a href="/board">掲示板</a></li>
+      <li><a href="#" onclick="logout()">ログアウト</a></li>
+    `;
+  } else {
+    menu.innerHTML = `
+      <li><a href="/items">商品一覧</a></li>
+      <li><a href="/login">ログイン</a></li>
+      <li><a href="/register">会員登録</a></li>
+      <li><a href="/board">掲示板</a></li>
+    `;
+  }
+
+  function logout() {
+    localStorage.removeItem("accessToken");
+    location.href = "/login";
+  }
+</script>
+
+</body>
+</html>

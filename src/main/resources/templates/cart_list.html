@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>カートリスト</title>
+  <style>
+    body { font-family: Arial, sans-serif; }
+    header {
+      padding: 10px; background-color: #f0f0f0;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    #logo { cursor: pointer; }
+    nav ul { list-style: none; display: flex; gap: 15px; margin: 0; padding: 0; }
+    nav ul li a { text-decoration: none; color: #333; }
+    aside { float: left; width: 200px; padding: 10px; }
+    main { margin-left: 220px; padding: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    table, th, td { border: 1px solid #ccc; }
+    th, td { padding: 8px; text-align: center; }
+    button { padding: 6px 12px; font-size: 14px; border: none; border-radius: 5px; cursor: pointer; }
+    .btn-update { background-color: #4CAF50; color: white; margin-right: 5px; }
+    .btn-update:hover { background-color: #45a049; }
+    .btn-delete { background-color: #f44336; color: white; }
+    .btn-delete:hover { background-color: #da190b; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div id="logo" onclick="location.href='/'">👟 ShoseShop</div>
+  <nav><ul id="menu"></ul></nav>
+</header>
+
+<aside>
+  <h3>メニュー</h3>
+  <ul>
+    <li><a href="/mypage">アカウント情報</a></li>
+    <li><a href="/mypage/cart">カートリスト</a></li>
+    <li><a href="/mypage/orders">注文履歴</a></li>
+  </ul>
+</aside>
+
+<main>
+  <h2>🛒 カートリスト</h2>
+  <table id="cartTable">
+    <thead>
+    <tr>
+      <th>選択</th>
+      <th>商品名</th>
+      <th>サイズ</th>
+      <th>数量</th>
+      <th>価格</th>
+      <th>小計</th>
+      <th>操作</th>
+    </tr>
+    </thead>
+    <tbody id="cartBody"></tbody>
+  </table>
+
+  <div style="margin-top: 20px;">
+    <button id="orderButton" style="padding:10px 20px; font-size:16px;">選択した商品を注文する</button>
+  </div>
+</main>
+
+<script>
+  const token = localStorage.getItem("accessToken");
+  const menu = document.getElementById("menu");
+
+  if (token) {
+    menu.innerHTML = `
+      <li><a href="#" onclick="logout()">ログアウト</a></li>
+      <li><a href="/mypage">マイページ</a></li>
+      <li><a href="/board">掲示板</a></li>
+    `;
+  } else {
+    menu.innerHTML = `
+      <li><a href="/login">ログイン</a></li>
+      <li><a href="/register">会員登録</a></li>
+      <li><a href="/board">掲示板</a></li>
+    `;
+  }
+
+  function logout() {
+    localStorage.removeItem("accessToken");
+    location.href = "/login";
+  }
+
+  function loadCartList() {
+    if (!token) {
+      alert("ログインが必要です。");
+      location.href = "/login";
+      return;
+    }
+
+    fetch("/api/cart/list", {
+      method: "GET",
+      headers: { "Authorization": "Bearer " + token }
+    })
+            .then(response => {
+              if (!response.ok) throw new Error("カートリスト取得失敗");
+              return response.json();
+            })
+            .then(data => {
+              const tbody = document.getElementById("cartBody");
+              tbody.innerHTML = "";
+
+              data.forEach(item => {
+                const sizeOptions = item.availableSizes.map(sizeInfo => `
+          <option value="${sizeInfo.size}" ${sizeInfo.size === item.size ? 'selected' : ''}>
+            ${sizeInfo.size} (${sizeInfo.stock}個)
+          </option>
+        `).join('');
+
+                const selectedStock = item.availableSizes.find(s => s.size === item.size)?.stock || 1;
+
+                const row = `
+          <tr>
+            <td><input type="checkbox" class="cart-checkbox" value="${item.id}"></td>
+            <td>${item.productName}</td>
+            <td>
+              <select id="size-${item.id}" onchange="updateMaxQuantity(${item.id}, ${JSON.stringify(item.availableSizes).replace(/"/g, '&quot;')})">
+                ${sizeOptions}
+              </select>
+            </td>
+            <td>
+              <input type="number" id="quantity-${item.id}" value="${item.quantity}" min="1" max="${selectedStock}"
+                     onchange="updateSubtotal(${item.id}, ${item.price})">
+            </td>
+            <td>${item.price}円</td>
+            <td id="subtotal-${item.id}">${item.price * item.quantity}円</td>
+            <td>
+              <button class="btn-update" onclick="updateCart(${item.id})">変更</button>
+              <button class="btn-delete" onclick="deleteCart(${item.id})">🗑️削除</button>
+            </td>
+          </tr>
+        `;
+                tbody.innerHTML += row;
+              });
+            })
+            .catch(error => {
+              console.error(error);
+              alert("カートリストを取得できませんでした。ログインを確認してください。");
+              location.href = "/login";
+            });
+  }
+
+  function updateSubtotal(cartId, price) {
+    const quantityInput = document.getElementById(`quantity-${cartId}`);
+    const subtotalTd = document.getElementById(`subtotal-${cartId}`);
+    const quantity = parseInt(quantityInput.value) || 0;
+    subtotalTd.textContent = (price * quantity) + "円";
+  }
+
+  function updateMaxQuantity(cartId, availableSizes) {
+    const selectedSize = parseInt(document.getElementById(`size-${cartId}`).value);
+    const stockInfo = availableSizes.find(s => s.size === selectedSize);
+    const quantityInput = document.getElementById(`quantity-${cartId}`);
+    const subtotalTd = document.getElementById(`subtotal-${cartId}`);
+    if (stockInfo) {
+      quantityInput.max = stockInfo.stock;
+      if (parseInt(quantityInput.value) > stockInfo.stock) {
+        quantityInput.value = stockInfo.stock;
+      }
+      const price = parseInt(subtotalTd.previousElementSibling.textContent.replace("円", ""));
+      subtotalTd.textContent = (price * parseInt(quantityInput.value)) + "円";
+    }
+  }
+
+  function updateCart(cartId) {
+    const size = document.getElementById(`size-${cartId}`).value;
+    const quantity = document.getElementById(`quantity-${cartId}`).value;
+
+    fetch("/api/cart/update", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ cartId, size, quantity })
+    })
+            .then(res => {
+              if (!res.ok) throw new Error("修正エラー");
+              alert("カート情報を修正しました！");
+              location.reload();
+            })
+            .catch(err => {
+              alert("修正に失敗しました。");
+            });
+  }
+
+  function deleteCart(cartId) {
+    if (!confirm("この商品をカートから削除しますか？")) return;
+
+    fetch(`/api/cart/delete/${cartId}`, {
+      method: "DELETE",
+      headers: { "Authorization": "Bearer " + token }
+    })
+            .then(res => {
+              if (!res.ok) throw new Error("削除エラー");
+              alert("カートから商品を削除しました！");
+              location.reload();
+            })
+            .catch(err => {
+              alert("削除に失敗しました。");
+            });
+  }
+
+  // ✅ "선택된 상품 주문하기" → 주문확인페이지로 이동
+  document.getElementById("orderButton").addEventListener("click", function() {
+    const checkedBoxes = document.querySelectorAll(".cart-checkbox:checked");
+    const selectedCartIds = Array.from(checkedBoxes).map(cb => cb.value);
+
+    if (selectedCartIds.length === 0) {
+      alert("注文する商品を選択してください。");
+      return;
+    }
+
+    const queryString = selectedCartIds.map(id => `cartIds=${id}`).join("&");
+    window.location.href = `/order/confirm?${queryString}`;
+  });
+
+  document.addEventListener("DOMContentLoaded", loadCartList);
+</script>
+
+</body>
+</html>
