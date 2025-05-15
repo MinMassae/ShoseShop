@@ -170,13 +170,18 @@ JWT 기반 인증: jwtoken/ 디렉토리 활용
 4. 데이터 흐름 (구매 기준)
 
     A[상품 선택] --> B[ProductController]
+   
     B --> C[CartController]
+   
     C --> D[StripePaymentService]
+   
     D --> E[OrderService]
+   
     E --> F[OrderItemRepository]
+   
     F --> G[주문 확인 페이지]
 
-5. 확장 및 유지보수 가이드
+6. 확장 및 유지보수 가이드
 
 5.1 기능 추가 시
 
