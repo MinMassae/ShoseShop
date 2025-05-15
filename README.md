@@ -68,25 +68,45 @@ Spring Security에 로그인된 사용자로 등록
 
 1. 프로젝트 구조
 
+
 ShoseShop-main/
+
 ├── build.gradle
+
 ├── settings.gradle
+
 ├── Dump20250509.sql            # DB 덤프
+
 ├── gradlew, gradlew.bat
+
 ├── .gitignore
+
 └── src/
+
     ├── main/
+	
     │   ├── java/com/example/shoseshop/
+	
     │   │   ├── api/               # API용 컨트롤러
+	
     │   │   ├── config/            # 보안 설정
+	
     │   │   ├── controller/        # 웹 페이지 컨트롤러
+	
     │   │   ├── domain/            # 도메인 클래스
+	
     │   │   ├── dto/               # DTO 정의
+	
     │   │   ├── entity/            # JPA Entity
+	
     │   │   ├── jwtoken/           # JWT 관련 처리
+	
     │   │   ├── repository/        # Repository 인터페이스
+	
     │   │   └── service/           # 서비스 클래스
+	
     │   └── resources/
+	
     └── test/
 
 2. 주요 컴포넌트 설명
